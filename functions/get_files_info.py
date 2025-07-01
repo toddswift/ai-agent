@@ -1,10 +1,76 @@
 import os
+from google.genai import types
+
+# schema files could be put anywhere but I chose this file as that is where boots put them
+schema_get_files_info = types.FunctionDeclaration(
+    name="get_files_info",
+    description="Lists files in the specified directory along with their sizes, constrained to the working directory.",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "directory": types.Schema(
+                type=types.Type.STRING,
+                description="The directory to list files from, relative to the working directory. If not provided, lists files in the working directory itself.",
+            ),
+        },
+    ),
+)
+
+schema_get_file_content = types.FunctionDeclaration (
+    name="get_file_content",
+    description="Retrieves the content of a specified file within the working directory.",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="The path to the file to read, relative to the working directory. Must be a file, not a directory.",
+            ),
+        },
+        required=["file_path"], 
+    ),
+)
+
+schema_run_python_file = types.FunctionDeclaration (
+    name="run_python_file",
+    description="Executes a Python file within the working directory and returns its output.",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="The path to the Python file to execute, relative to the working directory. Must be a file, not a directory.",
+            ),
+        },
+        required=["file_path"],
+    ),
+)
+
+schema_write_file = types.FunctionDeclaration(
+    name="write_file",
+    description="Writes content to a specified file within the working directory. If the file does not exist, it will be created.",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="The path to the file to write, relative to the working directory. If the file does not exist, it will be created.",
+            ),
+            "content": types.Schema(
+                type=types.Type.STRING,
+                description="The content to write to the file.",
+            ),
+        },
+        required=["file_path", "content"],
+    ),
+) 
+
 
 def get_files_info(working_directory, directory=None):
     # if the directory is outside the working directory, raise an error
-    '''
-    WARNING: This code is designed to run in a restricted environment.
-    It is restricted to only access files within a specific working directory.
+    
+    #WARNING: This code is designed to run in a restricted environment.
+    #It is restricted to only access files within a specific working directory.
     # This is to ensure that the LLM can only interact with files
     # within a designated area of the filesystem, preventing it from accessing
     # sensitive files or directories outside of this area.
@@ -15,8 +81,9 @@ def get_files_info(working_directory, directory=None):
     # reading sensitive files or overwriting important data. 
     # This is a very important step that we'll 
     # bake into every function the LLM can call
-    :WARNING
-    '''
+    #:WARNING
+
+
     abs_working_dir = os.path.abspath(working_directory)
     target_dir = abs_working_dir
     if directory:
