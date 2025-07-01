@@ -125,7 +125,7 @@ def main():
                         )
                     ],
                 )
-                        
+
         # Generate content using the Gemini API with the provided user prompt    
         response = client.models.generate_content(
         model='gemini-2.0-flash-001', 
@@ -134,26 +134,39 @@ def main():
             tools=[available_functions], system_instruction=system_prompt), # system_prompt is stored in prompts.py
         )
 
-        # If the LLM called a function, print the function name and arguments
-        if response.function_calls:
-            function_call_part = response.function_calls
+        # //todo: add a loop to make this an actual agent that can handle multiple user prompts
+        for iteration in range(20):  # Max 20 iterations
+            # 1. Add each candidate's content to messages (as the lesson specifies)
+            for candidate in response.candidates:
+                messages.append(candidate.content)
             
-            for function_call_part in response.function_calls:
-                #print(f"Calling function: {function_call_part.name}({function_call_part.args})")
-                function_call_result = call_function(function_call_part, verbose)
-                # Check if the result has the expected structure
-                if not hasattr(function_call_result.parts[0], 'function_response') or not function_call_result.parts[0].function_response.response:
-                    raise Exception("Function call result missing expected structure")
-
-                if function_call_result:
-                    # If the function call result is not None, print the result
+            # 2. Check if there are function calls to make
+            if not response.function_calls:
+                # If there are no function calls, print the final response and break
+                print("Final response:")
+                print(response.text)
+                break
+            else:
+                # If there are function calls, call the function and get the result
+                for function_call_part in response.function_calls:
+                    # Call the function and get the result
+                    function_call_result = call_function(function_call_part, verbose)
+                    # Add the function call result to the messages
+                    messages.append(function_call_result)
+                    
+                    # Print the function call result if verbose mode is enabled
                     if verbose:
-                        print(f"-> {function_call_result.parts[0].function_response.response}")
+                        print(f"Function call result: {function_call_result.parts[0].function_response.response}")
                 
-        else:
-            # Print the response from the Gemini API
-            print(response.text)
-
+                # Generate content again with the updated messages
+                response = client.models.generate_content(
+                    model='gemini-2.0-flash-001',
+                    contents=messages,
+                    config=types.GenerateContentConfig(
+                        tools=[available_functions], system_instruction=system_prompt),
+                )
+        
+          
         # If verbose mode is enabled, print the usage metadata if available
         if verbose and hasattr(response, 'usage_metadata') and response.usage_metadata:
             # Print the usage metadata if available
